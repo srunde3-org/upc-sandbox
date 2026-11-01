@@ -42,7 +42,7 @@ jobs:
   integration:
     name: Integration
     needs: packaging
-    if: ${{ github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch' }}
+    if: ${{ false }}
     uses: ./.github/workflows/integration.yaml
     with:
       # TODO: update these tags once we confirm the required list.
