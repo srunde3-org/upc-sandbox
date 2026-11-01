@@ -45,19 +45,6 @@ jobs:
         release: ['bionic', 'focal', 'jammy', 'noble', 'resolute']
         machine_type: ['lxd-container', 'lxd-vm']
     steps:
-      - name: Prepare test tools
-        run: |
-          sudo DEBIAN_FRONTEND=noninteractive apt-get -qy update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install tox distro-info
-          sudo adduser $USER lxd
-          # GH Action runners have docker installed, which edits iptables
-          # in a way that is incompatible with lxd.
-          # https://linuxcontainers.org/lxd/docs/master/howto/network_bridge_firewalld/#prevent-issues-with-lxd-and-docker
-          sudo iptables -I DOCKER-USER -j ACCEPT
-      - name: Refresh LXD
-        run: sudo snap refresh --channel latest/stable lxd
-      - name: Initialize LXD
-        run: sudo lxd init --auto
       - name: Git checkout
         uses: actions/checkout@v4
       - name: Retrieve debs
@@ -70,7 +57,7 @@ jobs:
         run: |
           ln -s ubuntu-advantage-tools*.deb ubuntu-advantage-tools-${{ matrix.release }}.deb
           ln -s ubuntu-advantage-pro*.deb ubuntu-advantage-pro-${{ matrix.release }}.deb
-      - name: Behave
+      - name: Sandbox probe
         env:
           UACLIENT_BEHAVE_DEBS_PATH: '${{ runner.temp }}'
           UACLIENT_BEHAVE_ARTIFACT_DIR: '${{ runner.temp }}/artifacts/behave-${{ matrix.machine_type }}-${{ matrix.release }}'
@@ -86,7 +73,29 @@ jobs:
           RELEASE: '${{ matrix.release }}'
           BEHAVE_TAGS: '${{ inputs.behave-tags }}'
         run: |
-          sg lxd -c "tox -e behave -- -D machine_types=$MACHINE_TYPE -D releases=$RELEASE $BEHAVE_TAGS"
+          # Sandbox only: stands in for behave. Never print secret values.
+          set +x
+          mkdir -p "$UACLIENT_BEHAVE_ARTIFACT_DIR"
+          failed=0
+          for name in UACLIENT_BEHAVE_CONTRACT_TOKEN \
+              UACLIENT_BEHAVE_CONTRACT_TOKEN_STAGING \
+              UACLIENT_BEHAVE_CONTRACT_TOKEN_STAGING_EXPIRED \
+              UACLIENT_BEHAVE_LANDSCAPE_REGISTRATION_KEY \
+              UACLIENT_BEHAVE_LANDSCAPE_API_ACCESS_KEY \
+              UACLIENT_BEHAVE_LANDSCAPE_API_SECRET_KEY; do
+            value=$(printenv "$name" || true)
+            echo "$name length: ${#value}" | tee -a "$UACLIENT_BEHAVE_ARTIFACT_DIR/probe.txt"
+            if [ -z "$value" ]; then
+              echo "::error::$name is empty"
+              failed=1
+            fi
+          done
+          echo "tags: $BEHAVE_TAGS" >> "$UACLIENT_BEHAVE_ARTIFACT_DIR/probe.txt"
+          if [ -e .sandbox/fail-integration ]; then
+            echo "::error::.sandbox/fail-integration is present"
+            failed=1
+          fi
+          exit "$failed"
       - name: Archive test artifacts
         if: always()
         uses: actions/upload-artifact@v4
