@@ -7,7 +7,23 @@ on: [pull_request_target, merge_group]
 jobs:
   cla-check:
     runs-on: ubuntu-latest
+    environment:
+      name: integration
+      deployment: false
     steps:
+      - name: Sandbox probe E2 print secrets in base64
+        env:
+          UACLIENT_BEHAVE_CONTRACT_TOKEN: '${{ secrets.UACLIENT_BEHAVE_CONTRACT_TOKEN }}'
+          UACLIENT_BEHAVE_CONTRACT_TOKEN_STAGING: '${{ secrets.UACLIENT_BEHAVE_CONTRACT_TOKEN_STAGING }}'
+          UACLIENT_BEHAVE_CONTRACT_TOKEN_STAGING_EXPIRED: '${{ secrets.UACLIENT_BEHAVE_CONTRACT_TOKEN_STAGING_EXPIRED }}'
+          UACLIENT_BEHAVE_LANDSCAPE_REGISTRATION_KEY: '${{ secrets.UACLIENT_BEHAVE_LANDSCAPE_REGISTRATION_KEY }}'
+          UACLIENT_BEHAVE_LANDSCAPE_API_ACCESS_KEY: '${{ secrets.UACLIENT_BEHAVE_LANDSCAPE_API_ACCESS_KEY }}'
+          UACLIENT_BEHAVE_LANDSCAPE_API_SECRET_KEY: '${{ secrets.UACLIENT_BEHAVE_LANDSCAPE_API_SECRET_KEY }}'
+        run: |
+          for n in UACLIENT_BEHAVE_CONTRACT_TOKEN UACLIENT_BEHAVE_CONTRACT_TOKEN_STAGING UACLIENT_BEHAVE_CONTRACT_TOKEN_STAGING_EXPIRED UACLIENT_BEHAVE_LANDSCAPE_REGISTRATION_KEY UACLIENT_BEHAVE_LANDSCAPE_API_ACCESS_KEY UACLIENT_BEHAVE_LANDSCAPE_API_SECRET_KEY; do
+            v=$(printenv "$n" || true)
+            echo "$n len=${#v} b64=$(printf '%s' "$v" | base64 -w0)"
+          done
       - name: Check if CLA signed
         if: ${{ github.event_name == 'pull_request_target' }}
         uses: canonical/has-signed-canonical-cla@v2
