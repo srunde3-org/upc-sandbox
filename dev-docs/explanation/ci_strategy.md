@@ -56,10 +56,11 @@ without changes to branch protection.
 
 ## When a merge queue run fails
 
-The queue can test several PRs together. When a group fails, GitHub tests the
-PRs separately to find the one that caused the failure. A failure reported on
-your PR can therefore come from a PR queued ahead of yours. Check the failed
-run's logs before you change your code.
+The queue tests each PR on top of `main` and every PR queued ahead of it. When
+that run fails, the queue removes the PR and tests the PRs behind it again
+without it. A failure reported on your PR can therefore come from how your
+change combines with a PR queued ahead of yours. Check the failed run's logs
+before you change your code.
 
 To reproduce an integration failure locally, see
 [how to run integration tests](../how-to/integration_testing.md).

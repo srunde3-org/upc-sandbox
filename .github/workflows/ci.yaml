@@ -16,7 +16,7 @@ on:
       - 'release-v*'
 
 concurrency:
-  group: 'ci-${{ github.workflow }}-${{ github.ref }}'
+  group: 'ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}'
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
@@ -47,6 +47,13 @@ jobs:
     with:
       # TODO: update these tags once we confirm the required list.
       behave-tags: '--tags=-slow --tags=-upgrade --tags=-no_gh --tags=-vpn'
+    secrets:
+      UACLIENT_BEHAVE_CONTRACT_TOKEN: '${{ secrets.UACLIENT_BEHAVE_CONTRACT_TOKEN }}'
+      UACLIENT_BEHAVE_CONTRACT_TOKEN_STAGING: '${{ secrets.UACLIENT_BEHAVE_CONTRACT_TOKEN_STAGING }}'
+      UACLIENT_BEHAVE_CONTRACT_TOKEN_STAGING_EXPIRED: '${{ secrets.UACLIENT_BEHAVE_CONTRACT_TOKEN_STAGING_EXPIRED }}'
+      UACLIENT_BEHAVE_LANDSCAPE_REGISTRATION_KEY: '${{ secrets.UACLIENT_BEHAVE_LANDSCAPE_REGISTRATION_KEY }}'
+      UACLIENT_BEHAVE_LANDSCAPE_API_ACCESS_KEY: '${{ secrets.UACLIENT_BEHAVE_LANDSCAPE_API_ACCESS_KEY }}'
+      UACLIENT_BEHAVE_LANDSCAPE_API_SECRET_KEY: '${{ secrets.UACLIENT_BEHAVE_LANDSCAPE_API_SECRET_KEY }}'
   ci:
     name: CI
     if: ${{ always() }}
@@ -82,9 +89,17 @@ jobs:
             merge_group|workflow_dispatch)
               check "Integration" "$INTEGRATION" success
               ;;
-            *)
+            pull_request)
               check "Integration" "$INTEGRATION" skipped
               echo "Integration tests are deferred to the merge queue." >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            push)
+              check "Integration" "$INTEGRATION" skipped
+              echo "Integration tests run in the merge queue, not on push." >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            *)
+              echo "::error::Unexpected event '$EVENT'"
+              failed=1
               ;;
           esac
           exit "$failed"
