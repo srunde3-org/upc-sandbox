@@ -45,3 +45,5 @@ Ubuntu Pro Client is a member of the Ubuntu family. It’s an open source projec
 community projects, contributions, suggestions, fixes and constructive feedback.
 
 * [Contribute](CONTRIBUTING.md)
+
+<!-- sandbox probe P1 -->
